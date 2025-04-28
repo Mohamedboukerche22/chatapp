@@ -13,6 +13,9 @@ def load_messages():
 def save_messages(messages):
     with open(DB_FILE, "w") as f:
         json.dump(messages, f)
+@app.route("/")
+def home():
+    return render_template("index.html")
 
 @app.route("/get", methods=["GET"])
 def get_messages():
