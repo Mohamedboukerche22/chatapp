@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Secure Chat</title>
+  <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      background: #e5ddd5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+    }
+    header {
+      background: #0088cc;
+      color: white;
+      padding: 15px;
+      font-size: 20px;
+      text-align: center;
+    }
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      background: #f0f0f0;
+    }
+    .bubble {
+      background: #dcf8c6;
+      padding: 10px 15px;
+      margin: 10px;
+      border-radius: 10px;
+      max-width: 60%;
+    }
+    #input {
+      display: flex;
+      padding: 10px;
+      background: white;
+    }
+    #message {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 20px;
+      outline: none;
+      font-size: 16px;
+    }
+    button {
+      background: #0088cc;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      margin-left: 10px;
+      border-radius: 20px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #006fa1;
+    }
+  </style>
+</head>
+<body>
+
+<header>🔒 Secure Chat</header>
+
+<div id="messages"></div>
+
+<div id="input">
+  <input type="text" id="message" placeholder="Type your message..." />
+  <button onclick="sendMessage()">Send</button>
+</div>
+
+<script>
+let encryptionKey = prompt("Enter chat password:");
+
+function sendMessage() {
+  let text = document.getElementById('message').value;
+  if (!text) return;
+
+  let encrypted = CryptoJS.AES.encrypt(text, encryptionKey).toString();
+
+  fetch('http://localhost:5000/send', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({message: encrypted})
+  }).then(response => {
+    document.getElementById('message').value = '';
+    loadMessages();
+  });
+}
+
+function loadMessages() {
+  fetch('http://localhost:5000/get')
+    .then(response => response.json())
+    .then(data => {
+      let chat = '';
+      data.forEach(msg => {
+        try {
+          let decrypted = CryptoJS.AES.decrypt(msg.message, encryptionKey).toString(CryptoJS.enc.Utf8);
+          chat += `<div class="bubble">${decrypted}</div>`;
+        } catch {
+          chat += `<div class="bubble">🔒 Encrypted</div>`;
+        }
+      });
+      document.getElementById('messages').innerHTML = chat;
+      document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    });
+}
+
+// refresh every 2 seconds
+setInterval(loadMessages, 2000);
+loadMessages();
+</script>
+
+</body>
+</html>
